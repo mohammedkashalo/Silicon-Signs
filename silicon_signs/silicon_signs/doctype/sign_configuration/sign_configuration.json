@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-13 04:11:57.242439",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "quotation",
+  "sign_template",
+  "lightning_type",
+  "mounting_type",
+  "quotation_item",
+  "column_break_nryh",
+  "perimeter_inches",
+  "led_count",
+  "sheet_count",
+  "quantity",
+  "add_on_section",
+  "paint_returns",
+  "vinyl_printed"
+ ],
+ "fields": [
+  {
+   "fieldname": "lightning_type",
+   "fieldtype": "Select",
+   "label": "Lightning Type",
+   "options": "Face-lit\nReverse Halo"
+  },
+  {
+   "fieldname": "mounting_type",
+   "fieldtype": "Select",
+   "label": "Mounting Type",
+   "options": "Raceway\nFlush"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "perimeter_inches",
+   "fieldtype": "Float",
+   "label": "Perimeter Inches"
+  },
+  {
+   "fieldname": "led_count",
+   "fieldtype": "Int",
+   "label": "Led Count"
+  },
+  {
+   "fieldname": "sheet_count",
+   "fieldtype": "Float",
+   "label": "Sheet Count"
+  },
+  {
+   "fieldname": "column_break_nryh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "add_on_section",
+   "fieldtype": "Section Break",
+   "label": "Add On"
+  },
+  {
+   "default": "0",
+   "fieldname": "paint_returns",
+   "fieldtype": "Check",
+   "label": "Paint Returns"
+  },
+  {
+   "default": "0",
+   "fieldname": "vinyl_printed",
+   "fieldtype": "Check",
+   "label": "Vinyl Printed"
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation"
+  },
+  {
+   "fieldname": "quotation_item",
+   "fieldtype": "Link",
+   "label": "Quotation Item",
+   "options": "Quotation Item"
+  },
+  {
+   "fieldname": "sign_template",
+   "fieldtype": "Link",
+   "label": "Sign Template",
+   "link_filters": "[[\"Item\",\"has_variants\",\"=\",1]]",
+   "options": "Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-13 08:07:59.767502",
+ "modified_by": "Administrator",
+ "module": "Silicon Signs",
+ "name": "Sign Configuration",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

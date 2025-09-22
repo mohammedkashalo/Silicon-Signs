@@ -51,30 +51,16 @@ frappe.ui.form.on('Quotation', {
 
                         // 2) Compute a “random-ish” price (replace with your logic anytime)
                         const av = attr_fg.get_values();
-                        console.log("av", av)
-                        const perimeter = flt(av['attr__perimeter_inches'] || 0); // depends on your attribute names
-                        const leds = cint(av['attr__led_count'] || 0);
-                        const sheets = flt(av['attr__sheet_count'] || 0);
-                        const letters = flt(av['attr__letters_count'] || 0);
-                        const powers = flt(av['attr__power_supply_count'] || 0);
-                        const setups = flt(av['attr__setup_sets'] || 0);
-                        const paint = flt(av['attr__paint_returns'] || "No");
+                        
 
-                        let price = 0;             // base
-                        price += perimeter * 1.9;   // perimeter adds
-                        price += leds * 2.54;       // LEDs add
-                        price += sheets * 18.0;     // sheets add
-                        price += letters * 17.69;     // sheets add
-                        price += powers * 110;     // sheets add
-                        price += setups * 187.5;     // sheets add
-                        if (av['attr__paint_returns'] === 'Yes') {
-                            price += 500;  // add cost if rounded
-                        }
-                        if (vals.paint_returns) price += 25;
-                        if (vals.vinyl_printed) price += 40;
-                        if (vals.lighting_type === 'Reverse Halo') price += 35;
-                        if (vals.mounting_type === 'Raceway') price += 20;
-                        price = Math.round(price * 100) / 100;
+                        const pr = await frappe.call({
+                            method: 'silicon_signs.silicon_signs.doctype.sign_pricing_template.api.price_item_by_attributes',
+                            args: {
+                                item_template: template,
+                                attributes: attr_args
+                            }
+                        });
+                        const { price, breakdown } = pr.message || {};
 
                         // 3) Find or create the variant
                         const getResp = await frappe.call({

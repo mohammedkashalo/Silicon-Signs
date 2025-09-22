@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-22 12:03:25.282081",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attribute",
+  "operator",
+  "value",
+  "min_value",
+  "max_value",
+  "mode",
+  "amount",
+  "rate",
+  "notes",
+  "active"
+ ],
+ "fields": [
+  {
+   "fieldname": "attribute",
+   "fieldtype": "Link",
+   "label": "Attribute",
+   "options": "Item Attribute"
+  },
+  {
+   "fieldname": "operator",
+   "fieldtype": "Select",
+   "label": "Operator",
+   "options": "Equals\nNot Equals\nBetween\nIs Set"
+  },
+  {
+   "depends_on": "eval:in_list([\"Equals\",\"Not Equals\"], doc.operator)",
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Value",
+   "mandatory_depends_on": "eval:in_list([\"Equals\",\"Not Equals\"], doc.operator)"
+  },
+  {
+   "depends_on": "eval:doc.operator==\"Between\"",
+   "fieldname": "min_value",
+   "fieldtype": "Float",
+   "label": "Min Value",
+   "mandatory_depends_on": "eval:doc.operator==\"Between\""
+  },
+  {
+   "depends_on": "eval:doc.operator==\"Between\"",
+   "fieldname": "max_value",
+   "fieldtype": "Float",
+   "label": "Max Value",
+   "mandatory_depends_on": "eval:doc.operator==\"Between\""
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Fixed\nPercent\nPer Unit"
+  },
+  {
+   "depends_on": "eval:in_list([\"Fixed\",\"Percent\"], doc.mode)",
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "label": "Amount",
+   "mandatory_depends_on": "eval:in_list([\"Fixed\",\"Percent\"], doc.mode)"
+  },
+  {
+   "depends_on": "eval:doc.mode==\"Per Unit\"",
+   "fieldname": "rate",
+   "fieldtype": "Float",
+   "label": "Rate",
+   "mandatory_depends_on": "eval:doc.mode==\"Per Unit\""
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "default": "0",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active?"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-22 13:42:39.181253",
+ "modified_by": "Administrator",
+ "module": "Silicon Signs",
+ "name": "Attribute Price Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

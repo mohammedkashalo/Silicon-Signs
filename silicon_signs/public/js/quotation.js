@@ -1,117 +1,252 @@
 frappe.ui.form.on('Quotation', {
-    refresh: function (frm) {
+    refresh(frm) {
         frm.add_custom_button(__('Configure Sign'), function () {
-            // Open the popup for the Sign Configuration doctype
-            var dialog = new frappe.ui.Dialog({
+            let dialog, attr_fg = null, attr_key_map = {};
+
+            const base_fields = [
+                {
+                    label: 'Sign Template',
+                    fieldname: 'sign_template',
+                    fieldtype: 'Link',
+                    options: 'Item',
+                    reqd: 1,
+                    change: () => load_attributes_into_dialog(),
+                    get_query: () => ({ filters: { has_variants: 1 } })
+                },
+
+                // --- Optional ad-hoc fields used only for pricing (keep or remove as you like) ---
+
+                { fieldtype: 'Section Break', label: 'Variant Attributes' },
+                { fieldtype: 'HTML', fieldname: 'attrs_html', options: '<div class="text-muted">Choose attribute values for the variant:</div>' }
+            ];
+
+            dialog = new frappe.ui.Dialog({
                 title: __('Sign Configuration'),
-                fields: [
-                    {
-                        label: 'Sign Template',
-                        fieldname: 'sign_template',
-                        fieldtype: 'Link',
-                        options: 'Item',
-                        reqd: 1,
-                        link_filters: {
-                            "has_variants": 1  // Only fetch items where has_variants = 1
-                        }
-                    },
-                    {
-                        label: 'Lighting Type',
-                        fieldname: 'lighting_type',
-                        fieldtype: 'Select',
-                        options: ['Face-lit', 'Reverse Halo', 'Other'],
-                        reqd: 1
-                    },
-                    {
-                        label: 'Mounting Type',
-                        fieldname: 'mounting_type',
-                        fieldtype: 'Select',
-                        options: ['Raceway', 'Flush', 'Other'],
-                        reqd: 1
-                    },
-                    {
-                        label: 'Perimeter Inches',
-                        fieldname: 'perimeter_inches',
-                        fieldtype: 'Float',
-                        reqd: 1
-                    },
-                    {
-                        label: 'LED Count',
-                        fieldname: 'led_count',
-                        fieldtype: 'Int',
-                        reqd: 1
-                    },
-                    {
-                        label: 'Sheet Count',
-                        fieldname: 'sheet_count',
-                        fieldtype: 'Float',
-                        reqd: 1
-                    },
-                    {
-                        label: 'Paint Returns',
-                        fieldname: 'paint_returns',
-                        fieldtype: 'Check',
-                    },
-                    {
-                        label: 'Vinyl Printed',
-                        fieldname: 'vinyl_printed',
-                        fieldtype: 'Check',
-                    }
-                ],
+                fields: base_fields,
                 primary_action_label: __('Save'),
-                primary_action: function () {
-                    // Create a new Sign Configuration record
-                    var data = dialog.get_values();
-                    var template = dialog.get_value("sign_template");
-                    console.log("data before removing fields:", data);
-
-                    
-                    // Remove the unwanted fields
-                    delete data.vinyl_printed;
-                    delete data.paint_returns;
-                    delete data.sign_template;
-
-                    console.log("data after removing fields:", data);
-                    var base_price = 100; // Example base price
-                    var price = base_price;
-
-                    // Add logic to calculate the price based on the configuration
-                    price += data.perimeter_inches * 10;  // Example: Add price based on perimeter inches
-                    price += data.led_count * 5;  // Example: Add price based on LED count
-                    price += data.sheet_count * 20;  // Example: Add price based on sheet count
-
-                    console.log("Calculated price:", price);
-
-                    // Call get_variant to check if the variant already exists
-                    frappe.call({
-                        method: "erpnext.controllers.item_variant.get_variant",
-                        args: {
-                            template: template, // Pass the selected template
-                            args: data           // Pass the configuration data
-                        },
-                        callback: function(response) {
-                            // Handle the response for getting the variant (if needed)
-                            console.log("get_variant response:", response);
+                async primary_action() {
+                    try {
+                        const vals = dialog.get_values();
+                        if (!vals || !vals.sign_template) {
+                            frappe.msgprint(__('Please choose a Sign Template.'));
+                            return;
                         }
-                    });
 
-                    // Call create_variant to create a new item variant
-                    frappe.call({
-                        method: "erpnext.controllers.item_variant.create_variant",
-                        args: {
-                            item: template,  // Pass the selected template item
-                            args: data       // Pass the configuration data
-                        },
-                        callback: function(response) {
-                            // Handle the response for creating the variant
-                            console.log("create_variant response:", response);
-                            frappe.msgprint(__('New item variant created successfully.'));
-                            dialog.hide()
+                        // 1) Collect attribute values from FieldGroup
+                        if (!attr_fg) {
+                            frappe.throw(__('Please wait for attributes to load.'));
                         }
-                    });
+                        const attr_vals = attr_fg.get_values(); // validates reqd fields
+                        if (!attr_vals) return; // FieldGroup will highlight missing
+
+                        // Map FieldGroup fieldnames back to actual Item Attribute names
+                        const attr_args = {};
+                        Object.keys(attr_vals).forEach(k => {
+                            const attr_name = attr_key_map[k]; // real attribute (with spaces/case)
+                            if (attr_name) attr_args[attr_name] = attr_vals[k];
+                        });
+
+                        const template = vals.sign_template;
+                        console.log("the vals", vals)
+
+                        // 2) Compute a “random-ish” price (replace with your logic anytime)
+                        const av = attr_fg.get_values();
+                        console.log("av", av)
+                        const perimeter = flt(av['attr__perimeter_inches'] || 0); // depends on your attribute names
+                        const leds = cint(av['attr__led_count'] || 0);
+                        const sheets = flt(av['attr__sheet_count'] || 0);
+                        const letters = flt(av['attr__letters_count'] || 0);
+                        const powers = flt(av['attr__power_supply_count'] || 0);
+                        const setups = flt(av['attr__setup_sets'] || 0);
+                        const paint = flt(av['attr__paint_returns'] || "No");
+
+                        let price = 0;             // base
+                        price += perimeter * 1.9;   // perimeter adds
+                        price += leds * 2.54;       // LEDs add
+                        price += sheets * 18.0;     // sheets add
+                        price += letters * 17.69;     // sheets add
+                        price += powers * 110;     // sheets add
+                        price += setups * 187.5;     // sheets add
+                        if (av['attr__paint_returns'] === 'Yes') {
+                            price += 500;  // add cost if rounded
+                        }
+                        if (vals.paint_returns) price += 25;
+                        if (vals.vinyl_printed) price += 40;
+                        if (vals.lighting_type === 'Reverse Halo') price += 35;
+                        if (vals.mounting_type === 'Raceway') price += 20;
+                        price = Math.round(price * 100) / 100;
+
+                        // 3) Find or create the variant
+                        const getResp = await frappe.call({
+                            method: 'erpnext.controllers.item_variant.get_variant',
+                            args: { template, args: attr_args }
+                        });
+                        let item_code = getResp && getResp.message ? getResp.message : null;
+
+                        if (!item_code) {
+                            const createResp = await frappe.call({
+                                method: 'erpnext.controllers.item_variant.create_variant',
+                                args: { item: template, args: attr_args }
+                            });
+                            item_code = createResp && createResp.message
+                                ? (createResp.message.name || createResp.message.item_code || createResp.message)
+                                : null;
+                        }
+                        if (!item_code) frappe.throw(__('Could not determine the created variant Item Code.'));
+
+                        // 4) Upsert Item Price for the quotation’s selling price list
+                        const price_list = frm.doc.selling_price_list || 'Standard Selling';
+                        const currency = frm.doc.currency || (frappe.boot && frappe.boot.sysdefaults && frappe.boot.sysdefaults.currency) || 'USD';
+
+                        // Try to read UOM for Item Price
+
+
+                        // Check for existing Item Price
+                        let existingPrice = null;
+                        try {
+                            const res = await frappe.db.get_list('Item Price', {
+                                fields: ['name', 'price_list_rate'],
+                                filters: { item_code, price_list },
+                                limit: 1
+                            });
+                            existingPrice = (res && res.length) ? res[0] : null;
+                        } catch (e) { /* ignore */ }
+
+                        if (existingPrice) {
+                            await frappe.call({
+                                method: 'frappe.client.set_value',
+                                args: {
+                                    doctype: 'Item Price',
+                                    name: existingPrice.name,
+                                    fieldname: 'price_list_rate',
+                                    value: price
+                                }
+                            });
+                        } else {
+                            await frappe.call({
+                                method: 'frappe.client.insert',
+                                args: {
+                                    doc: {
+                                        doctype: 'Item Price',
+                                        item_code,
+                                        price_list,
+                                        price_list_rate: price,
+                                        currency,
+                                        uom: "Nos",
+                                        selling: 1
+                                    }
+                                }
+                            });
+                        }
+
+                        // 5) Add to Quotation items and save
+                        const grid = frm.get_field('items').grid;
+
+                        // Try to reuse the last row if it's empty
+                        let row = (frm.doc.items || []).slice(-1)[0];
+                        const is_empty = row && !row.item_code && !row.item_name && !row.description;
+
+                        if (!row || !is_empty) {
+                            // No empty tail row → create one
+                            row = frm.add_child('items');
+                        }
+
+                        // Set values via model.set_value to trigger fetches and child validations
+                        await frappe.model.set_value(row.doctype, row.name, 'item_code', item_code);
+                        await frappe.model.set_value(row.doctype, row.name, 'qty', 1);
+                        await frappe.model.set_value(row.doctype, row.name, 'uom', 'Nos');
+                        await frappe.model.set_value(row.doctype, row.name, 'rate', price);
+
+                        // (Optional) if you also want item_name explicitly:
+                        // await frappe.model.set_value(row.doctype, row.name, 'item_name', item_code);
+
+                        await frm.refresh_field('items');
+
+                        // optional: persist now so the new row + pricing is saved immediately
+                        await frm.save();
+
+                        const price_formatted = frappe.format(price, { fieldtype: 'Currency', options: currency });
+                        frappe.msgprint(__('Item Variant {0} added with price {1}.', [item_code.bold(), price_formatted]));
+
+                        dialog.hide();
+                    } catch (err) {
+                        console.error(err);
+                        frappe.msgprint({
+                            title: __('Error'),
+                            indicator: 'red',
+                            message: __(err.message || err)
+                        });
+                    }
                 }
             });
+
             dialog.show();
+
+            // ----- Helpers -----
+            async function load_attributes_into_dialog() {
+                const template = dialog.get_value('sign_template');
+                if (!template) return;
+
+                try {
+                    const item = await frappe.db.get_doc('Item', template);
+                    const attrs = (item && item.attributes) ? item.attributes : [];
+
+                    // Prepare container for FieldGroup
+                    const holder = dialog.get_field('attrs_html').$wrapper.empty();
+                    attr_key_map = {};
+
+                    // Build dynamic fields
+                    const fields = [];
+                    let colCounter = 0;
+                    for (const row of attrs) {
+                        const attr_name = row.attribute;
+                        if (!attr_name) continue;
+
+                        const attrDoc = await frappe.db.get_doc('Item Attribute', attr_name);
+                        const options = (attrDoc && attrDoc.item_attribute_values || []).map(v => v.attribute_value);
+
+                        const scrub = (s) => (frappe.scrub ? frappe.scrub(s) : (s || '').toString().toLowerCase().replace(/\W+/g, '_'));
+                        const fname = 'attr__' + scrub(attr_name);
+                        attr_key_map[fname] = attr_name; // map back to real attribute
+
+                        fields.push({
+                            label: attr_name,
+                            fieldname: fname,
+                            fieldtype: row.numeric_values ? 'Float' : 'Select',
+                            options: row.numeric_values ? undefined : options,
+                            reqd: 1
+                        });
+                        colCounter++;
+                        console.log("counter", colCounter)
+                        if (colCounter % 2 === 1) {
+                            console.log("adding col")
+                            fields.push({ fieldtype: 'Column Break' });
+                        } else {
+                            // after the 2nd field in the row, start a new row
+                            fields.push({ fieldtype: 'Section Break' });
+                        }
+                    }
+
+                    // if we ended with a single field dangling in the row, ensure we break the row
+                    if (colCounter % 2 === 1) {
+                        fields.push({ fieldtype: 'Section Break' });
+
+                    }
+
+                    // Make FieldGroup
+                    attr_fg = new frappe.ui.FieldGroup({
+                        fields,
+                        body: holder
+                    });
+                    await attr_fg.make();
+                } catch (e) {
+                    console.error(e);
+                    frappe.msgprint(__('Could not load attributes for the selected template.'));
+                }
+            }
+
+            function flt(v) { return parseFloat(v || 0) || 0; }
+            function cint(v) { return parseInt(v || 0, 10) || 0; }
         });
     }
 });

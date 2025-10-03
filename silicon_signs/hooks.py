@@ -26,7 +26,7 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/silicon_signs/css/silicon_signs.css"
-app_include_js = "/assets/silicon_signs/js/quotation.js"
+app_include_js = ["/assets/silicon_signs/js/quotation.js","/assets/silicon_signs/js/opportunity.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/silicon_signs/css/silicon_signs.css"

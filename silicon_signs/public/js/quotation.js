@@ -15,6 +15,43 @@ frappe.ui.form.on('Quotation', {
                 },
 
                 // --- Optional ad-hoc fields used only for pricing (keep or remove as you like) ---
+                {
+                    fieldtype: 'Attach',
+                    label: 'Design File (SVG)',
+                    fieldname: 'design_svg',
+                    options: 'Attach',
+                    reqd: 0
+                },
+
+                {
+                    fieldtype: 'Button',
+                    label: 'Calculate Perimeter',
+                    fieldname: 'calculate_perimeter_btn',
+                    click: async () => {
+                        const file_url = dialog.get_value('design_svg');
+                        if (!file_url ) {
+                            frappe.msgprint(__('Please upload a valid SVG file.'));
+                            return;
+                        }
+
+                        const res = await frappe.call({
+                            method: 'silicon_signs.api.calculate_perimeter',
+                            args: { file_url }
+                        });
+
+                        const perimeter = res.message?.perimeter_inches;
+                        if (perimeter) {
+                            if (attr_fg) {
+                                await attr_fg.set_value('attr__perimeter_inches', perimeter);
+                            } else {
+                                frappe.msgprint(__('Attribute fields not yet loaded.'));
+                            }
+                        } else {
+                            frappe.msgprint(__('Could not calculate perimeter.'));
+                        }
+                    }
+                },
+                { fieldtype: 'Section Break' },
 
                 { fieldtype: 'Section Break', label: 'Variant Attributes' },
                 { fieldtype: 'HTML', fieldname: 'attrs_html', options: '<div class="text-muted">Choose attribute values for the variant:</div>' }
@@ -51,7 +88,7 @@ frappe.ui.form.on('Quotation', {
 
                         // 2) Compute a “random-ish” price (replace with your logic anytime)
                         const av = attr_fg.get_values();
-                        
+
 
                         const pr = await frappe.call({
                             method: 'silicon_signs.silicon_signs.doctype.sign_pricing_template.api.price_item_by_attributes',
